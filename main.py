@@ -3,6 +3,8 @@ import logging
 import requests
 import json
 import time
+import os
+import pickle
 from parameters import DATA
 from concurrent.futures import ThreadPoolExecutor
 from threading import current_thread
@@ -10,6 +12,19 @@ from threading import current_thread
 class WQSession(requests.Session):
     def __init__(self, json_fn='credentials.json'):
         super().__init__()
+        self.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Origin': 'https://platform.worldquantbrain.com',
+            'Referer': 'https://platform.worldquantbrain.com/',
+            'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-site'
+        })
         for handler in logging.root.handlers:
             logging.root.removeHandler(handler)
         logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(asctime)s: %(message)s')
@@ -27,19 +42,44 @@ class WQSession(requests.Session):
         self.rows_processed = []
 
     def login(self):
-        with open(self.json_fn, 'r') as f:
-            creds = json.loads(f.read())
-            email, password = creds['email'], creds['password']
-            self.auth = (email, password)
-            r = self.post('https://api.worldquantbrain.com/authentication')
+        if os.path.exists('cookies.pkl'):
+            with open('cookies.pkl', 'rb') as f:
+                self.cookies.update(pickle.load(f))
+            r = self.get('https://api.worldquantbrain.com/authentication')
+            if r.status_code == 200 and 'user' in r.json():
+                logging.info('Logged in to WQBrain using saved cookies!')
+                return
+            else:
+                logging.info('Saved cookies expired or invalid. Logging in again...')
+                self.cookies.clear()
+
+        if os.path.exists(self.json_fn):
+            with open(self.json_fn, 'r') as f:
+                creds = json.loads(f.read())
+                email, password = creds['email'], creds['password']
+        else:
+            import getpass
+            print(f"{self.json_fn} not found. Please enter your WorldQuant Brain credentials.")
+            email = input("Email: ")
+            password = getpass.getpass("Password: ")
+            with open(self.json_fn, 'w') as f:
+                json.dump({'email': email, 'password': password}, f, indent=4)
+                
+        self.auth = (email, password)
+        r = self.post('https://api.worldquantbrain.com/authentication')
         if 'user' not in r.json():
             if 'inquiry' in r.json():
-                input(f"Please complete biometric authentication at {r.url}/persona?inquiry={r.json()['inquiry']} before continuing...")
+                print(f"Please complete biometric authentication at {r.url}/persona?inquiry={r.json()['inquiry']} before continuing...")
+                print("Waiting 60 seconds for you to verify...")
+                time.sleep(60)
                 self.post(f"{r.url}/persona", json=r.json())
             else:
                 print(f'WARNING! {r.json()}')
-                input('Press enter to quit...')
-        logging.info('Logged in to WQBrain!')
+                time.sleep(10)
+                
+        with open('cookies.pkl', 'wb') as f:
+            pickle.dump(self.cookies, f)
+        logging.info('Logged in to WQBrain and saved cookies!')
 
     def simulate(self, data):
         self.rows_processed = []
@@ -148,15 +188,17 @@ class WQSession(requests.Session):
                     'subsharpe', 'correlation', 'universe', 'link', 'code'
                 ]
                 writer.writerow(header)
-                with ThreadPoolExecutor(max_workers=10) as executor: # 10 threads, only 3 can go in concurrently so this is no harm
-                    _ = executor.map(lambda sim: process_simulation(writer, f, sim), data)
+                with ThreadPoolExecutor(max_workers=3) as executor: # Reduced to 3 to avoid triggering WQBrain bot protection (session expiry)
+                    _ = executor.map(lambda sim: (time.sleep(1), process_simulation(writer, f, sim))[1], data)
         except Exception as e:
             print(f'Issue occurred! {type(e).__name__}: {e}')
         return [sim for sim in data if sim not in self.rows_processed]
 
 if __name__ == '__main__':
     TOTAL_ROWS = len(DATA)
+    wq = None
     while DATA:
-        wq = WQSession()
+        if wq is None or wq.login_expired:
+            wq = WQSession()
         print(f'{TOTAL_ROWS-len(DATA)}/{TOTAL_ROWS} alpha simulations...')
         DATA = wq.simulate(DATA)
