@@ -1,7 +1,7 @@
 from commands import *
 import os
 
-# 預設模擬設定模板
+# 預設模擬設定模板 (非掃描模式下使用)
 SETTINGS = {
     'neutralization': 'SUBINDUSTRY',
     'decay': 10,
@@ -9,6 +9,17 @@ SETTINGS = {
     'delay': 1,
     'universe': 'TOP3000',
     'region': 'USA'
+}
+
+# ==================== 參數掃描設定 (Parameter Sweep Settings) ====================
+# 設為 True 即可啟用下方的多參數組合掃描；設為 False 則使用上方單一的 SETTINGS
+ENABLE_SWEEP = False
+
+SWEEP_PARAMS = {
+    'universe': ['TOP3000', 'TOP2000'],
+    'neutralization': ['SUBINDUSTRY', 'SECTOR'],
+    'decay': [5, 10, 15],
+    'truncation': [0.01, 0.05, 0.1]
 }
 
 # 讀取 alphas.txt 檔案中的公式
@@ -61,8 +72,22 @@ codes = load_alphas_from_file()
 
 # 自動組合設定與公式生成 DATA
 DATA = []
-for code in codes:
-    sim = SETTINGS.copy()
-    sim['code'] = code
-    DATA.append(sim)
+if ENABLE_SWEEP:
+    import itertools
+    keys, values = zip(*SWEEP_PARAMS.items())
+    for code in codes:
+        for combination in itertools.product(*values):
+            sim = SETTINGS.copy()
+            sim.update(dict(zip(keys, combination)))
+            sim['code'] = code
+            DATA.append(sim)
+    print(f"--- 參數掃描模式已啟用 ---")
+    print(f"共生成 {len(DATA)} 組模擬任務 (公式數: {len(codes)} x 參數組合數: {len(DATA)//max(1, len(codes))})")
+else:
+    for code in codes:
+        sim = SETTINGS.copy()
+        sim['code'] = code
+        DATA.append(sim)
+    print(f"--- 單一參數模式已啟用 ---")
+    print(f"共生成 {len(DATA)} 組模擬任務")
 
