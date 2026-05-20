@@ -12,8 +12,13 @@ SETTINGS = {
 }
 
 # ==================== 參數掃描設定 (Parameter Sweep Settings) ====================
-# 設為 True 即可啟用下方的多參數組合掃描；設為 False 則使用上方單一的 SETTINGS
+# 設為 True 即可啟用多參數掃描；設為 False 則使用上方單一的 SETTINGS
 ENABLE_SWEEP = False
+
+# 選擇掃描模式：
+# 'independent': 獨立單一參數掃描 (每次只變動一個參數，其餘保持預設，避免組合爆炸)
+# 'grid': 笛卡爾積交叉掃描 (測試所有可能的排列組合)
+SWEEP_MODE = 'independent'
 
 SWEEP_PARAMS = {
     'universe': ['TOP3000', 'TOP2000'],
@@ -73,16 +78,45 @@ codes = load_alphas_from_file()
 # 自動組合設定與公式生成 DATA
 DATA = []
 if ENABLE_SWEEP:
-    import itertools
-    keys, values = zip(*SWEEP_PARAMS.items())
-    for code in codes:
-        for combination in itertools.product(*values):
-            sim = SETTINGS.copy()
-            sim.update(dict(zip(keys, combination)))
-            sim['code'] = code
-            DATA.append(sim)
-    print(f"--- 參數掃描模式已啟用 ---")
-    print(f"共生成 {len(DATA)} 組模擬任務 (公式數: {len(codes)} x 參數組合數: {len(DATA)//max(1, len(codes))})")
+    if SWEEP_MODE == 'independent':
+        # 獨立參數掃描 (One-Factor-at-a-Time)
+        generated_keys = set()
+        for code in codes:
+            # 1. 先加入一組完全使用預設 SETTINGS 的基準任務
+            base_sim = SETTINGS.copy()
+            base_sim['code'] = code
+            base_key = (code, tuple(sorted((k, v) for k, v in SETTINGS.items() if k != 'code')))
+            DATA.append(base_sim)
+            generated_keys.add(base_key)
+            
+            # 2. 針對每個變數獨立進行掃描，其他欄位維持預設
+            for param_name, values in SWEEP_PARAMS.items():
+                for val in values:
+                    sim = SETTINGS.copy()
+                    sim[param_name] = val
+                    sim['code'] = code
+                    
+                    # 避免生成重複的基準任務組合
+                    sim_key = (code, tuple(sorted((k, v) for k, v in sim.items() if k != 'code')))
+                    if sim_key not in generated_keys:
+                        DATA.append(sim)
+                        generated_keys.add(sim_key)
+                        
+        print(f"--- 參數掃描模式已啟用 (獨立單一變數掃描模式) ---")
+        print(f"共生成 {len(DATA)} 組模擬任務 (已過濾重複項，公式數: {len(codes)})")
+        
+    elif SWEEP_MODE == 'grid':
+        # 笛卡爾積交叉掃描 (Cartesian Product Grid Sweep)
+        import itertools
+        keys, values = zip(*SWEEP_PARAMS.items())
+        for code in codes:
+            for combination in itertools.product(*values):
+                sim = SETTINGS.copy()
+                sim.update(dict(zip(keys, combination)))
+                sim['code'] = code
+                DATA.append(sim)
+        print(f"--- 參數掃描模式已啟用 (笛卡爾積交叉掃描模式) ---")
+        print(f"共生成 {len(DATA)} 組模擬任務 (公式數: {len(codes)} x 參數組合數: {len(DATA)//max(1, len(codes))})")
 else:
     for code in codes:
         sim = SETTINGS.copy()
