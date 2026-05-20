@@ -32,11 +32,21 @@ class WQSession(requests.Session):
         self.login()
         old_get, old_post = self.get, self.post
         def new_get(*args, **kwargs):
-            try:    return old_get(*args, **kwargs)
-            except: return new_get(*args, **kwargs)
+            for i in range(5):
+                try:
+                    return old_get(*args, **kwargs)
+                except Exception as e:
+                    logging.info(f"new_get Exception (retry {i+1}/5): {e}")
+                    time.sleep(2)
+            return old_get(*args, **kwargs)
         def new_post(*args, **kwargs):
-            try:    return old_post(*args, **kwargs)
-            except: return new_post(*args, **kwargs)
+            for i in range(5):
+                try:
+                    return old_post(*args, **kwargs)
+                except Exception as e:
+                    logging.info(f"new_post Exception (retry {i+1}/5): {e}")
+                    time.sleep(2)
+            return old_post(*args, **kwargs)
         self.get, self.post = new_get, new_post
         self.login_expired = False
         self.rows_processed = []
@@ -98,6 +108,8 @@ class WQSession(requests.Session):
             pasteurization = simulation.get('pasteurization', 'ON')
             nan = simulation.get('nanHandling', 'OFF')
             logging.info(f"{thread} -- Simulating alpha: {alpha}")
+            ok = True
+            nxt = ""
             while True:
                 # keep sending a post request until the simulation link is found
                 try:
@@ -119,28 +131,49 @@ class WQSession(requests.Session):
                             "visualization":False
                         }
                     })
+                    if getattr(r, 'status_code', 200) >= 400:
+                        try:
+                            if 'credentials' in r.json().get('detail', ''):
+                                self.login_expired = True
+                                return
+                        except Exception:
+                            pass
+                        
+                        if getattr(r, 'status_code', 200) < 500:
+                            ok = (False, getattr(r, 'content', 'Bad Request'))
+                            break
+                            
+                        logging.info(f'{thread} -- Error {r.status_code}: {r.content}')
+                        return
+                    
                     nxt = r.headers['Location']
                     break
-                except:
-                    try:
-                        if 'credentials' in r.json()['detail']:
-                            self.login_expired = True
-                            return
-                    except:
-                        logging.info(f'{thread} -- {r.content}') # usually gateway timeout
-                        return
-            logging.info(f'{thread} -- Obtained simulation link: {nxt}')
-            ok = True
-            while True:
-                r = self.get(nxt).json()
-                if 'alpha' in r:
-                    alpha_link = r['alpha']
-                    break
-                try:
-                    logging.info(f"{thread} -- Waiting for simulation to end ({int(100*r['progress'])}%)")
                 except Exception as e:
-                    ok = (False, r['message']); break
-                time.sleep(10)
+                    logging.info(f'{thread} -- Exception: {e}')
+                    return
+            
+            if ok == True:
+                logging.info(f'{thread} -- Obtained simulation link: {nxt}')
+                while True:
+                    try:
+                        resp = self.get(nxt)
+                        r = resp.json()
+                    except Exception as e:
+                        logging.info(f"{thread} -- Error fetching or parsing simulation status: {e}. Retrying in 10s...")
+                        time.sleep(10)
+                        continue
+                    
+                    if 'alpha' in r:
+                        alpha_link = r['alpha']
+                        break
+                    
+                    try:
+                        logging.info(f"{thread} -- Waiting for simulation to end ({int(100*r['progress'])}%)")
+                    except Exception as e:
+                        ok = (False, r.get('message', r.get('error', str(e))))
+                        break
+                    time.sleep(10)
+                    
             if ok != True:
                 logging.info(f'{thread} -- Issue when sending simulation request: {ok[1]}')
                 row = [
@@ -178,7 +211,24 @@ class WQSession(requests.Session):
             for handler in logging.root.handlers:
                 logging.root.removeHandler(handler)
             csv_file = f"data/api_{str(time.time()).replace('.', '_')}.csv"
-            logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(asctime)s: %(message)s', filename=csv_file.replace('csv', 'log'))
+            self.csv_file = csv_file
+            log_file = csv_file.replace('csv', 'log')
+            
+            # Configure logging to write to both the log file and console stream
+            formatter = logging.Formatter('%(asctime)s: %(message)s')
+            
+            file_handler = logging.FileHandler(log_file, encoding='utf-8')
+            file_handler.setFormatter(formatter)
+            file_handler.setLevel(logging.INFO)
+            
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(formatter)
+            console_handler.setLevel(logging.INFO)
+            
+            logging.root.setLevel(logging.INFO)
+            logging.root.addHandler(file_handler)
+            logging.root.addHandler(console_handler)
+            
             logging.info(f'Creating CSV file: {csv_file}')
             with open(csv_file, 'w', newline='') as f:
                 writer = csv.writer(f)
@@ -189,7 +239,7 @@ class WQSession(requests.Session):
                 ]
                 writer.writerow(header)
                 with ThreadPoolExecutor(max_workers=3) as executor: # Reduced to 3 to avoid triggering WQBrain bot protection (session expiry)
-                    _ = executor.map(lambda sim: (time.sleep(1), process_simulation(writer, f, sim))[1], data)
+                    list(executor.map(lambda sim: (time.sleep(1), process_simulation(writer, f, sim))[1], data))
         except Exception as e:
             print(f'Issue occurred! {type(e).__name__}: {e}')
         return [sim for sim in data if sim not in self.rows_processed]
@@ -202,3 +252,39 @@ if __name__ == '__main__':
             wq = WQSession()
         print(f'{TOTAL_ROWS-len(DATA)}/{TOTAL_ROWS} alpha simulations...')
         DATA = wq.simulate(DATA)
+
+    # Show results
+    if wq and hasattr(wq, 'csv_file') and os.path.exists(wq.csv_file):
+        print("\n" + "="*80)
+        print(" SIMULATION RESULTS ".center(80, "="))
+        print("="*80)
+        with open(wq.csv_file, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+            if len(rows) > 1:
+                headers = rows[0]
+                key_cols = ['passed', 'region', 'neutralization', 'decay', 'sharpe', 'fitness', 'turnover', 'weight', 'code']
+                col_indices = []
+                for col in key_cols:
+                    if col in headers:
+                        col_indices.append((col, headers.index(col)))
+                
+                col_widths = {}
+                for col_name, idx in col_indices:
+                    col_widths[col_name] = len(col_name)
+                    for row in rows[1:]:
+                        if idx < len(row):
+                            col_widths[col_name] = max(col_widths[col_name], len(str(row[idx])))
+                
+                header_line = " | ".join(col_name.upper().ljust(col_widths[col_name]) for col_name, _ in col_indices)
+                print(header_line)
+                print("-" * len(header_line))
+                
+                for row in rows[1:]:
+                    row_line = " | ".join(str(row[idx]).ljust(col_widths[col_name]) for col_name, idx in col_indices)
+                    print(row_line)
+            else:
+                print("No results recorded.")
+        print("="*80)
+        print(f"Full results saved to: {os.path.abspath(wq.csv_file)}")
+        print("="*80)
