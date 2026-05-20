@@ -13,7 +13,7 @@ SETTINGS = {
 
 # ==================== 參數掃描設定 (Parameter Sweep Settings) ====================
 # 設為 True 即可啟用多參數掃描；設為 False 則使用上方單一的 SETTINGS
-ENABLE_SWEEP = False
+ENABLE_SWEEP = True
 
 # 選擇掃描模式：
 # 'independent': 獨立單一參數掃描 (每次只變動一個參數，其餘保持預設，避免組合爆炸)
@@ -21,9 +21,10 @@ ENABLE_SWEEP = False
 SWEEP_MODE = 'independent'
 
 SWEEP_PARAMS = {
-    'universe': ['TOP3000', 'TOP2000'],
-    'neutralization': ['SUBINDUSTRY', 'SECTOR'],
-    'decay': [5, 10, 15],
+    'universe': ['TOP3000', 'TOP2000', 'TOP1000', 'TOP500', 'TOP200', 'TOPSP500'],
+    'delay': [1, 0],
+    'neutralization': ['NONE', 'MARKET', 'SECTOR', 'INDUSTRY', 'SUBINDUSTRY'],
+    'decay': [0, 1, 5, 10, 15],
     'truncation': [0.01, 0.05, 0.1]
 }
 

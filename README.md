@@ -66,6 +66,45 @@ python scrape_alphas.py
 python submit_alphas.py data/alpha_scrape_result_<timestamp>.csv
 ```
 
+## 參數掃描運作機制
+
+本工具在 `parameters.py` 中內建了強大的**多參數掃描 (Parameter Sweep)** 功能。當您希望測試同一組 Alpha 公式在不同參數設定下的表現時，無須手動反覆修改程式。
+
+### 1. 如何啟用與設定
+在 `parameters.py` 中：
+* 將 **`ENABLE_SWEEP`** 設為 `True`。
+* 在 **`SWEEP_PARAMS`** 中設定您想測試的所有參數範圍。
+* 在 **`SWEEP_MODE`** 選擇您要使用的掃描模式：
+
+### 2. 兩種掃描模式說明
+
+#### 💡 A. 獨立單一變數掃描 (`SWEEP_MODE = 'independent'`) - 推薦使用
+* **運作機制**：以 `SETTINGS` 為基準線，**每次只會變動一個參數**，其餘參數均保持預設值。
+* **特色**：程式會自動過濾與預設基準重複的項目。此模式能精準找出各參數對 Alpha 表現的單獨影響，同時**有效避免參數組合過多（組合爆炸）**導致 API 請求被平台阻擋。
+* **範例**：
+  若基準 `SETTINGS` 為：`universe='TOP3000'`, `neutralization='SUBINDUSTRY'`, `decay=10`, `truncation=0.1`
+  而您設定的 `SWEEP_PARAMS` 如下：
+  ```python
+  SWEEP_PARAMS = {
+      'universe': ['TOP3000', 'TOP2000'],
+      'neutralization': ['SUBINDUSTRY', 'SECTOR'],
+      'decay': [5, 10, 15],
+      'truncation': [0.01, 0.05, 0.1]
+  }
+  ```
+  此模式會為每條 Alpha 自動生成 **7 組獨立模擬**：
+  1. **基準（全預設）**：`TOP3000` + `SUBINDUSTRY` + `decay=10` + `truncation=0.1`
+  2. **只改 Universe**：`TOP2000` + 其餘預設
+  3. **只改 Neutralization**：`SECTOR` + 其餘預設
+  4. **只改 Decay (5)**：`decay=5` + 其餘預設
+  5. **只改 Decay (15)**：`decay=15` + 其餘預設
+  6. **只改 Truncation (0.01)**：`truncation=0.01` + 其餘預設
+  7. **只改 Truncation (0.05)**：`truncation=0.05` + 其餘預設
+
+#### 🎛️ B. 笛卡爾積交叉掃描 (`SWEEP_MODE = 'grid'`)
+* **運作機制**：將 `SWEEP_PARAMS` 中定義的所有參數範圍進行全排列（Cartesian Product），生成所有可能的交叉組合。
+* **特色**：能地毯式搜索所有參數的協同效應，但模擬次數會呈指數級成長（例如上方範例在 Grid 模式下會產生 $2 \times 2 \times 3 \times 3 = 36$ 組模擬）。請謹慎使用以防觸發頻率限制。
+
 ## 自動提交運作機制
 
 整個 Alpha 的篩選與提交過程是由 `scrape_alphas.py`（篩選過濾）與 `submit_alphas.py`（自動提交）協同完成的，其運作流程如下：
