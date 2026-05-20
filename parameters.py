@@ -18,14 +18,25 @@ ENABLE_SWEEP = True
 # 選擇掃描模式：
 # 'independent': 獨立單一參數掃描 (每次只變動一個參數，其餘保持預設，避免組合爆炸)
 # 'grid': 笛卡爾積交叉掃描 (測試所有可能的排列組合)
-SWEEP_MODE = 'independent'
+
+# SWEEP_MODE = 'independent'
+
+# SWEEP_PARAMS = {
+#     'universe': ['TOP3000', 'TOP2000', 'TOP1000', 'TOP500', 'TOP200', 'TOPSP500'],
+#     'delay': [1, 0],
+#     'neutralization': ['NONE', 'MARKET', 'SECTOR', 'INDUSTRY', 'SUBINDUSTRY'],
+#     'decay': [0, 1, 5, 10, 15],
+#     'truncation': [0.01, 0.05, 0.1]
+# }
+
+SWEEP_MODE = 'grid'
 
 SWEEP_PARAMS = {
-    'universe': ['TOP3000', 'TOP2000', 'TOP1000', 'TOP500', 'TOP200', 'TOPSP500'],
-    'delay': [1, 0],
-    'neutralization': ['NONE', 'MARKET', 'SECTOR', 'INDUSTRY', 'SUBINDUSTRY'],
-    'decay': [0, 1, 5, 10, 15],
-    'truncation': [0.01, 0.05, 0.1]
+    'universe': ['TOP3000', 'TOP1000', 'TOP200', 'TOPSP500'],
+#    'delay': [1, 0],
+    'neutralization': ['MARKET', 'SUBINDUSTRY'],
+    'decay': [0, 5, 15],
+    'truncation': [0.01, 0.1]
 }
 
 # 讀取 alphas.txt 檔案中的公式
