@@ -263,7 +263,7 @@ if __name__ == '__main__':
             rows = list(reader)
             if len(rows) > 1:
                 headers = rows[0]
-                key_cols = ['passed', 'region', 'neutralization', 'decay', 'sharpe', 'fitness', 'turnover', 'weight', 'code']
+                key_cols = ['passed', 'region', 'neutralization', 'decay', 'sharpe', 'fitness', 'turnover', 'weight']
                 col_indices = []
                 for col in key_cols:
                     if col in headers:
