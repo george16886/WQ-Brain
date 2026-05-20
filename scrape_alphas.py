@@ -14,7 +14,7 @@ team_params = {
 
 OFFSET, LIMIT = 0, 30
 def get_link(x):
-    return f'https://api.worldquantbrain.com/users/self/alphas?limit={LIMIT}&offset={x}&stage=IS%1fOS&is.sharpe%3E=1.25&is.turnover%3E=0.01&is.fitness%3E=1&status=UNSUBMITTED&order=-dateCreated&hidden=false'
+    return f'https://api.worldquantbrain.com/users/self/alphas?limit={LIMIT}&offset={x}&stage=IS%1fOS&is.sharpe%3E=1.25&is.turnover%3E=0.01&is.turnover%3C=0.7&is.fitness%3E=1&status=UNSUBMITTED&order=-dateCreated&hidden=false'
 
 wq = WQSession()
 r = wq.get('https://api.worldquantbrain.com/users/self/teams', params=team_params).json()
@@ -25,6 +25,9 @@ def scrape(result):
     thread = current_thread().name
     alpha = result['regular']['code']
     settings = result['settings']
+    if str(settings.get('delay', '')) == '0':
+        if result['is'].get('sharpe', 0) <= 2.0 or result['is'].get('fitness', 0) <= 1.3:
+            return -1
     aid = result['id']
     passed = sum(check['result'] == 'PASS' for check in result['is']['checks'])
     failed = sum(check['result'] in ['FAIL', 'ERROR'] for check in result['is']['checks'])

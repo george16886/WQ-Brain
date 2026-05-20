@@ -112,9 +112,9 @@ python submit_alphas.py data/alpha_scrape_result_<timestamp>.csv
 ### 1. 篩選與過濾階段 (`scrape_alphas.py`)
 * **搜尋符合門檻的未提交 Alpha**：
   腳本透過 API 篩選出您個人帳戶中符合以下條件且**尚未提交** (`status=UNSUBMITTED`) 的 Alpha 策略：
-  * **Sharpe $\ge 1.25$**
-  * **Turnover（換手率）$\ge 1\%$**
-  * **Fitness（適應度）$\ge 1.0$**
+  * **Sharpe ≥ 1.25**（若 Delay = 0，則需 **> 2.0**）
+  * **Turnover（換手率）1% ~ 70%**
+  * **Fitness（適應度）≥ 1.0**（若 Delay = 0，則需 **> 1.3**）
 * **多執行緒細部檢查**：
   使用 10 個執行緒（`ThreadPoolExecutor`）並行向 `/alphas/{id}/check` 取得詳細的檢驗報告，確保該 Alpha 在 In-Sample（IS）的所有系統檢查皆為 `PASS`。
 * **公式清理與儲存**：
