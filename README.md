@@ -66,6 +66,31 @@ python scrape_alphas.py
 python submit_alphas.py data/alpha_scrape_result_<timestamp>.csv
 ```
 
+## 自動提交運作機制
+
+整個 Alpha 的篩選與提交過程是由 `scrape_alphas.py`（篩選過濾）與 `submit_alphas.py`（自動提交）協同完成的，其運作流程如下：
+
+### 1. 篩選與過濾階段 (`scrape_alphas.py`)
+* **搜尋符合門檻的未提交 Alpha**：
+  腳本透過 API 篩選出您個人帳戶中符合以下條件且**尚未提交** (`status=UNSUBMITTED`) 的 Alpha 策略：
+  * **Sharpe $\ge 1.25$**
+  * **Turnover（換手率）$\ge 1\%$**
+  * **Fitness（適應度）$\ge 1.0$**
+* **多執行緒細部檢查**：
+  使用 10 個執行緒（`ThreadPoolExecutor`）並行向 `/alphas/{id}/check` 取得詳細的檢驗報告，確保該 Alpha 在 In-Sample（IS）的所有系統檢查皆為 `PASS`。
+* **公式清理與儲存**：
+  去除代碼中的註解（以 `#` 開頭）與多餘的換行/空白，並將策略屬性（包含自我相關性 `max_corr`、`region`、`universe`、`neutralization` 等）存入 `data/alpha_scrape_result_<timestamp>.csv`。
+
+### 2. 自動提交階段 (`submit_alphas.py`)
+* **發送提交請求**：
+  讀取篩選出的 CSV 檔案，並向 `https://api.worldquantbrain.com/alphas/{aid}/submit` 發送 `POST` 請求以啟動正式的提交審核。
+* **輪詢（Polling）等待結果**：
+  進入迴圈每隔 5 秒發送 `GET` 請求查詢進度。若遇到已提交過的策略會返回 `404` 並自動跳過。
+* **自我相關性檢測（`SELF_CORRELATION`）**：
+  系統會自動比對該策略是否與您（或團隊）已提交的策略有過高的相關性。若檢測結果為 `PASS`，則代表成功提交。
+* **單次限額中斷**：
+  為配合平台每日的提交限制，腳本在**成功提交第一個 Alpha 後**便會自動停止，確保安全與穩定。
+
 ## 注意事項
 
 - **API 頻率限制**: 執行緒數量已進行調控 (例如 `main.py` 中 `max_workers=3`)，以避免觸發 WorldQuant Brain 的反爬蟲機制導致 Session 提早過期。
