@@ -13,31 +13,31 @@ SETTINGS = {
 
 # ==================== 參數掃描設定 (Parameter Sweep Settings) ====================
 # 設為 True 即可啟用多參數掃描；設為 False 則使用上方單一的 SETTINGS
-ENABLE_SWEEP = False
+ENABLE_SWEEP = True
 
 # 選擇掃描模式：
 # 'independent': 獨立單一參數掃描 (每次只變動一個參數，其餘保持預設，避免組合爆炸)
 # 'grid': 笛卡爾積交叉掃描 (測試所有可能的排列組合)
 
-SWEEP_MODE = 'independent'
-
-SWEEP_PARAMS = {
-    'universe': ['TOP3000', 'TOP2000', 'TOP1000', 'TOP500', 'TOP200', 'TOPSP500'],
-    'delay': [1, 0],
-    'neutralization': ['NONE', 'MARKET', 'SECTOR', 'INDUSTRY', 'SUBINDUSTRY'],
-    'decay': [0, 1, 5, 10, 15],
-    'truncation': [0.01, 0.05, 0.1]
-}
-
-# SWEEP_MODE = 'grid'
+# SWEEP_MODE = 'independent'
 
 # SWEEP_PARAMS = {
-#     'universe': ['TOP3000', 'TOP1000', 'TOP200', 'TOPSP500'],
-# #    'delay': [1, 0],
-#     'neutralization': ['MARKET', 'SUBINDUSTRY'],
-#     'decay': [0, 5, 15],
-#     'truncation': [0.01, 0.1]
+#     'universe': ['TOP3000', 'TOP2000', 'TOP1000', 'TOP500', 'TOP200', 'TOPSP500'],
+#     'delay': [1, 0],
+#     'neutralization': ['NONE', 'MARKET', 'SECTOR', 'INDUSTRY', 'SUBINDUSTRY'],
+#     'decay': [0, 1, 5, 10, 15],
+#     'truncation': [0.01, 0.05, 0.1]
 # }
+
+SWEEP_MODE = 'grid'
+
+SWEEP_PARAMS = {
+    'universe': ['TOP3000', 'TOP1000', 'TOP200', 'TOPSP500'],
+#    'delay': [1, 0],
+    'neutralization': ['MARKET', 'SUBINDUSTRY'],
+    'decay': [0, 5, 15],
+    'truncation': [0.01, 0.1]
+}
 
 # 讀取 alphas.txt 檔案中的公式
 ALPHAS_FILE = 'alphas.txt'
@@ -46,9 +46,10 @@ def load_alphas_from_file():
     if not os.path.exists(ALPHAS_FILE):
         with open(ALPHAS_FILE, 'w', encoding='utf-8') as f:
             f.write("# 在此放入您的 Alpha 公式，支援多行書寫！\n")
-            f.write("# 不同的公式之間請使用「空白行（Double Newline）」來做區隔。\n")
-            f.write("# 支援以 '#' 開頭的註解行。\n")
-            f.write("open + close\n\n")
+            f.write("# 不同的公式之間請使用「---」來做區隔，讓公式內可自由包含空白行。\n")
+            f.write("# 支援以 '#' 或 '//' 開頭的註解行。\n")
+            f.write("open + close\n")
+            f.write("---\n")
             f.write("# 這是一個多行公式的範例：\n")
             f.write("rank(\n")
             f.write("    ts_sum(close - open, 10) /\n")
@@ -62,12 +63,15 @@ def load_alphas_from_file():
     current_lines = []
     for line in content.splitlines():
         line_stripped = line.strip()
-        if not line_stripped:
-            # 空白行代表公式的區隔
+        if line_stripped == '---':
+            # '---' 代表公式的區隔
             if current_lines:
                 alphas.append(" ".join(current_lines))
                 current_lines = []
-        elif line_stripped.startswith('#'):
+        elif not line_stripped:
+            # 忽略公式內的空白行，保持自由度
+            continue
+        elif line_stripped.startswith('#') or line_stripped.startswith('//'):
             # 註解行忽略
             continue
         else:
