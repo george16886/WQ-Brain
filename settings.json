@@ -6,7 +6,7 @@
         "decay": 0,
         "truncation": 0.1
     },
-    "enable_sweep": false,
+    "enable_sweep": true,
     "sweep_mode": "grid",
     "sweep_params": {
         "universe": [
@@ -17,12 +17,12 @@
         ],
         "neutralization": [
             "MARKET",
+            "INDUSTRY",
             "SUBINDUSTRY"
         ],
         "decay": [
             0,
-            5,
-            15
+            5
         ],
         "truncation": [
             0.01,

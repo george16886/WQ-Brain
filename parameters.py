@@ -110,8 +110,8 @@ if ENABLE_SWEEP:
                         DATA.append(sim)
                         generated_keys.add(sim_key)
                         
-        print(f"--- 參數掃描模式已啟用 (獨立單一變數掃描模式) ---")
-        print(f"共生成 {len(DATA)} 組模擬任務 (已過濾重複項，公式數: {len(codes)})")
+        print(f"--- Parameter Sweep Enabled (Independent/One-Factor-at-a-Time) ---")
+        print(f"Total simulations generated: {len(DATA)} (Duplicates filtered, Formulas: {len(codes)})")
         
     elif SWEEP_MODE == 'grid':
         # 笛卡爾積交叉掃描 (Cartesian Product Grid Sweep)
@@ -123,13 +123,13 @@ if ENABLE_SWEEP:
                 sim.update(dict(zip(keys, combination)))
                 sim['code'] = code
                 DATA.append(sim)
-        print(f"--- 參數掃描模式已啟用 (笛卡爾積交叉掃描模式) ---")
-        print(f"共生成 {len(DATA)} 組模擬任務 (公式數: {len(codes)} x 參數組合數: {len(DATA)//max(1, len(codes))})")
+        print(f"--- Parameter Sweep Enabled (Cartesian Product Grid Sweep) ---")
+        print(f"Total simulations generated: {len(DATA)} (Formulas: {len(codes)} x Combinations: {len(DATA)//max(1, len(codes))})")
 else:
     for code in codes:
         sim = SETTINGS.copy()
         sim['code'] = code
         DATA.append(sim)
-    print(f"--- 單一參數模式已啟用 ---")
-    print(f"共生成 {len(DATA)} 組模擬任務")
+    print(f"--- Single Parameter Mode Enabled ---")
+    print(f"Total simulations generated: {len(DATA)}")
 

@@ -19,8 +19,23 @@
                 <a href="#" class="nav-item" data-target="settings-view">Sweep Console</a>
                 <a href="#" class="nav-item" data-target="logs-view">Terminal</a>
             </nav>
-            <div class="action-btn-container">
-                <button id="run-btn" class="primary-btn pulse">RUN SIMULATION</button>
+            <div class="stats-sidebar" style="margin-top: auto; margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 0.9em;">
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Alphas:</span> 
+                    <span id="stat-alphas" style="font-weight: bold; color: var(--accent-light);">0</span>
+                </div>
+                <div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>Simulations:</span> 
+                    <span id="stat-sims" style="font-weight: bold; color: var(--accent-light);">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Progress:</span> 
+                    <span id="stat-progress" style="font-weight: bold; color: var(--accent-light);">0 / 0</span>
+                </div>
+            </div>
+            <div class="action-btn-container" style="display: flex; gap: 10px;">
+                <button id="run-btn" class="primary-btn pulse" style="flex: 1;">RUN</button>
+                <button id="stop-btn" class="secondary-btn" style="flex: 1; background: #ef4444; color: white; display: none;">STOP</button>
             </div>
         </aside>
 

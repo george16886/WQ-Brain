@@ -58,11 +58,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const loadStats = async () => {
+        try {
+            const res = await fetch('/api/stats');
+            const data = await res.json();
+            document.getElementById('stat-alphas').textContent = data.alphas;
+            document.getElementById('stat-sims').textContent = data.simulations;
+            
+            // update progress denominator if not currently running
+            if (badge.textContent !== 'RUNNING') {
+                document.getElementById('stat-progress').textContent = `0 / ${data.simulations}`;
+            }
+        } catch(e) {
+            console.error("Failed to load stats:", e);
+        }
+    };
+
     loadAlphas();
     loadSettings();
+    
+    // We need to make sure badge is defined before loadStats uses it
+    const badge = document.getElementById('status-badge');
+    loadStats();
 
     // Save Alphas
-    document.getElementById('save-alphas-btn').addEventListener('click', async () => {
+    const saveAlphas = async () => {
         const content = document.getElementById('alphas-editor').value;
         await fetch('/api/alphas', {
             method: 'POST',
@@ -70,10 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({ content })
         });
         showToast('Alphas saved successfully!');
-    });
+        await loadStats();
+    };
+
+    document.getElementById('save-alphas-btn').addEventListener('click', saveAlphas);
 
     // Save Settings
-    document.getElementById('save-settings-btn').addEventListener('click', async () => {
+    const saveSettings = async () => {
         // First get current settings to preserve sweep_params
         const res = await fetch('/api/settings');
         const currentData = await res.json();
@@ -97,17 +120,34 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(payload)
         });
         showToast('Settings saved successfully!');
-    });
+        await loadStats();
+    };
+
+    document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
 
     // Run Simulation
     let logInterval = null;
     const terminal = document.getElementById('terminal-output');
-    const badge = document.getElementById('status-badge');
 
     const fetchLogs = async () => {
         try {
             const res = await fetch('/api/logs');
             const data = await res.json();
+            
+            // update progress
+            if (badge.textContent === 'RUNNING') {
+                const totalSims = parseInt(document.getElementById('stat-sims').textContent) || 0;
+                // Count how many "Result added to CSV!" are in the log content
+                const doneCount = (data.content.match(/Result added to CSV!/g) || []).length;
+                document.getElementById('stat-progress').textContent = `${doneCount} / ${totalSims}`;
+                
+                if (totalSims > 0 && doneCount >= totalSims) {
+                    badge.className = 'badge idle';
+                    badge.textContent = 'DONE';
+                    document.getElementById('run-btn').style.display = 'block';
+                    document.getElementById('stop-btn').style.display = 'none';
+                }
+            }
             
             // Escape HTML safely
             const escapeHTML = str => str.replace(/[&<>'"]/g, tag => ({
@@ -126,12 +166,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('run-btn').addEventListener('click', async () => {
+        
+        terminal.textContent = "Saving configurations...\n";
+        try {
+            await saveAlphas();
+            await saveSettings();
+        } catch(e) {
+            console.error("Failed to save before running:", e);
+        }
+
         // Switch to terminal view
         navItems[2].click();
         
-        terminal.textContent = "Initializing simulation...\n";
+        terminal.textContent += "Initializing simulation...\n";
         badge.className = 'badge running';
         badge.textContent = 'RUNNING';
+        
+        document.getElementById('run-btn').style.display = 'none';
+        document.getElementById('stop-btn').style.display = 'block';
 
         try {
             await fetch('/api/run', { method: 'POST' });
@@ -140,12 +192,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if(logInterval) clearInterval(logInterval);
             logInterval = setInterval(fetchLogs, 2000);
             
-            // In a real app we'd stop polling when it finishes, 
-            // but for simplicity we poll continuously while on the page
         } catch(e) {
             terminal.textContent += "\nFailed to start simulation.";
             badge.className = 'badge idle';
             badge.textContent = 'ERROR';
+            document.getElementById('run-btn').style.display = 'block';
+            document.getElementById('stop-btn').style.display = 'none';
+        }
+    });
+
+    document.getElementById('stop-btn').addEventListener('click', async () => {
+        try {
+            await fetch('/api/stop', { method: 'POST' });
+            badge.className = 'badge idle';
+            badge.textContent = 'STOPPED';
+            terminal.textContent += "\nSimulation stopped by user.\n";
+        } catch(e) {
+            console.error(e);
+        } finally {
+            document.getElementById('run-btn').style.display = 'block';
+            document.getElementById('stop-btn').style.display = 'none';
         }
     });
 });

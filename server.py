@@ -46,8 +46,24 @@ def save_settings(req: Dict[str, Any]):
         json.dump(req, f, indent=4)
     return {"status": "success"}
 
+@app.get("/api/stats")
+def get_stats():
+    import importlib
+    import parameters
+    importlib.reload(parameters)
+    return {
+        "alphas": len(parameters.codes),
+        "simulations": len(parameters.DATA)
+    }
+
+current_process = None
+
 @app.post("/api/run")
 def run_simulation():
+    global current_process
+    if current_process and current_process.poll() is None:
+        return {"status": "already running"}
+
     if not os.path.exists("data"):
         os.makedirs("data")
     log_file = "data/sim_latest.log"
@@ -56,10 +72,18 @@ def run_simulation():
         f.write("Simulation Started...\n")
     
     try:
-        subprocess.Popen(["python", "-u", "main.py"], stdout=open(log_file, "a", encoding="utf-8"), stderr=subprocess.STDOUT)
+        current_process = subprocess.Popen(["python", "-u", "main.py"], stdout=open(log_file, "a", encoding="utf-8"), stderr=subprocess.STDOUT)
         return {"status": "started"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/stop")
+def stop_simulation():
+    global current_process
+    if current_process and current_process.poll() is None:
+        current_process.terminate()
+        return {"status": "stopped"}
+    return {"status": "not running"}
 
 @app.get("/api/logs")
 def get_logs():

@@ -252,11 +252,17 @@ class WQSession(requests.Session):
 if __name__ == '__main__':
     TOTAL_ROWS = len(DATA)
     wq = None
-    while DATA:
-        if wq is None or wq.login_expired:
-            wq = WQSession()
-        print(f'{TOTAL_ROWS-len(DATA)}/{TOTAL_ROWS} alpha simulations...')
-        DATA = wq.simulate(DATA)
+    try:
+        while DATA:
+            if wq is None or wq.login_expired:
+                wq = WQSession()
+            print(f'{TOTAL_ROWS-len(DATA)}/{TOTAL_ROWS} alpha simulations...')
+            DATA = wq.simulate(DATA)
+    except KeyboardInterrupt:
+        print("\n" + "="*80)
+        print(" SIMULATION INTERRUPTED ".center(80, "="))
+        print("="*80)
+        print("Simulation was stopped manually. Displaying partial results...")
 
     # Show results
     if wq and hasattr(wq, 'csv_file') and os.path.exists(wq.csv_file):
