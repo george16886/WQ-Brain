@@ -4,10 +4,27 @@
 
 ## 功能特性
 
+- **圖形化網頁介面 (Web UI)**: 內建基於 FastAPI 打造的現代化深色主題網頁介面。提供 Alpha 公式編輯器、Sweep 參數掃描中控台，以及即時執行的終端機日誌，讓操作更加直覺。
 - **自動化模擬 (`main.py`)**: 讀取 `parameters.py` 和 `commands.py` 中生成的參數設定，使用多執行緒自動向 WQBrain 提交模擬請求，並將結果存為 CSV 格式。支援自動登入與 Cookie 存續，避免頻繁的生物辨識驗證。
 - **抓取達標策略 (`scrape_alphas.py`)**: 抓取帳號內符合特定條件 (如 Sharpe > 1.25, Fitness > 1, 未提交等) 的 Alpha 策略，輸出結果至 CSV，方便後續篩選。
 - **自動提交策略 (`submit_alphas.py`)**: 讀取抓取出來的 CSV 檔案，自動將符合條件且相關性低於限制的策略提交至系統中。
 - **策略庫 (`commands.py`, `database.py`)**: 內建多種生成 Alphas 語法的函式庫，包含常見的價量計算與 101 Alphas 等論文策略。
+
+## 🎨 Web UI 網頁介面 (推薦)
+
+為了提供最棒的使用體驗，我們打造了內建的 Web 介面。您可以透過網頁完成所有的公式編輯與參數設定。
+
+1. **啟動伺服器**：
+   在終端機輸入以下指令啟動 FastAPI 伺服器：
+   ```bash
+   python -m uvicorn server:app --host 127.0.0.1 --port 8000
+   ```
+2. **開啟瀏覽器**：
+   前往 `http://127.0.0.1:8000` 即可進入儀表板。
+3. **介面功能**：
+   * **Alpha Editor**: 在網頁上直接撰寫、排版公式並儲存。
+   * **Sweep Console**: 用下拉式選單與滑桿動態調整 Universe、Neutralization 等參數，系統會自動在背景存入 `settings.json` 並為其加上範圍限制 (例如 Decay 最大限制為 512，Truncation 最大限制為 1)。
+   * **Terminal**: 點擊「RUN SIMULATION」後，可以在網頁上即時監控模擬日誌與登入狀態。
 
 ## 檔案結構
 
