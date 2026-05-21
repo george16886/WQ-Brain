@@ -108,7 +108,19 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch('/api/logs');
             const data = await res.json();
-            terminal.textContent = data.content;
+            
+            // Escape HTML safely
+            const escapeHTML = str => str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag] || tag));
+            
+            let safeContent = escapeHTML(data.content);
+            
+            // Linkify URLs
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            safeContent = safeContent.replace(urlRegex, '<a href="$1" target="_blank" style="color: #60a5fa; text-decoration: underline;">$1</a>');
+            
+            terminal.innerHTML = safeContent;
             terminal.scrollTop = terminal.scrollHeight;
         } catch(e) {}
     };

@@ -1,18 +1,32 @@
 {
     "settings": {
-        "neutralization": "SUBINDUSTRY",
-        "decay": 10,
-        "truncation": 0.1,
-        "delay": 1,
         "universe": "TOP3000",
-        "region": "USA"
+        "neutralization": "INDUSTRY",
+        "delay": 1,
+        "decay": 0,
+        "truncation": 0.1
     },
-    "enable_sweep": true,
+    "enable_sweep": false,
     "sweep_mode": "grid",
     "sweep_params": {
-        "universe": ["TOP3000", "TOP1000", "TOP200", "TOPSP500"],
-        "neutralization": ["MARKET", "SUBINDUSTRY"],
-        "decay": [0, 5, 15],
-        "truncation": [0.01, 0.1]
+        "universe": [
+            "TOP3000",
+            "TOP1000",
+            "TOP200",
+            "TOPSP500"
+        ],
+        "neutralization": [
+            "MARKET",
+            "SUBINDUSTRY"
+        ],
+        "decay": [
+            0,
+            5,
+            15
+        ],
+        "truncation": [
+            0.01,
+            0.1
+        ]
     }
 }

@@ -5,9 +5,12 @@ import json
 import time
 import os
 import pickle
+import threading
 from parameters import DATA
 from concurrent.futures import ThreadPoolExecutor
 from threading import current_thread
+
+submission_lock = threading.Lock()
 
 class WQSession(requests.Session):
     def __init__(self, json_fn='credentials.json'):
@@ -113,24 +116,26 @@ class WQSession(requests.Session):
             while True:
                 # keep sending a post request until the simulation link is found
                 try:
-                    r = self.post('https://api.worldquantbrain.com/simulations', json={
-                        'regular': alpha,
-                        'type': 'REGULAR',
-                        'settings': {
-                            "nanHandling":nan,
-                            "instrumentType":"EQUITY",
-                            "delay":delay,
-                            "universe":universe,
-                            "truncation":truncation,
-                            "unitHandling":"VERIFY",
-                            "pasteurization":pasteurization,
-                            "region":region,
-                            "language":"FASTEXPR",
-                            "decay":decay,
-                            "neutralization":neutralization,
-                            "visualization":False
-                        }
-                    })
+                    with submission_lock:
+                        time.sleep(3) # Ensure at least 3 seconds between submissions across all threads
+                        r = self.post('https://api.worldquantbrain.com/simulations', json={
+                            'regular': alpha,
+                            'type': 'REGULAR',
+                            'settings': {
+                                "nanHandling":nan,
+                                "instrumentType":"EQUITY",
+                                "delay":delay,
+                                "universe":universe,
+                                "truncation":truncation,
+                                "unitHandling":"VERIFY",
+                                "pasteurization":pasteurization,
+                                "region":region,
+                                "language":"FASTEXPR",
+                                "decay":decay,
+                                "neutralization":neutralization,
+                                "visualization":False
+                            }
+                        })
                     if getattr(r, 'status_code', 200) >= 400:
                         try:
                             if 'credentials' in r.json().get('detail', ''):

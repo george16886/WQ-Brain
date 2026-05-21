@@ -56,7 +56,7 @@ def run_simulation():
         f.write("Simulation Started...\n")
     
     try:
-        subprocess.Popen(["python", "main.py"], stdout=open(log_file, "a", encoding="utf-8"), stderr=subprocess.STDOUT)
+        subprocess.Popen(["python", "-u", "main.py"], stdout=open(log_file, "a", encoding="utf-8"), stderr=subprocess.STDOUT)
         return {"status": "started"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -65,7 +65,7 @@ def run_simulation():
 def get_logs():
     log_file = "data/sim_latest.log"
     if os.path.exists(log_file):
-        with open(log_file, "r", encoding="utf-8") as f:
+        with open(log_file, "r", encoding="utf-8", errors="replace") as f:
             return {"content": f.read()}
     return {"content": "Waiting for simulation to start...\n"}
 
