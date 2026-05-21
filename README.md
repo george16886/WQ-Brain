@@ -23,8 +23,16 @@
    前往 `http://127.0.0.1:8000` 即可進入儀表板。
 3. **介面功能**：
    * **Alpha Editor**: 在網頁上直接撰寫、排版公式並儲存。
+     
+     ![Alpha Editor](assets/alpha_editor.png)
+   
    * **Sweep Console**: 用下拉式選單與滑桿動態調整 Universe、Neutralization 等參數，系統會自動在背景存入 `settings.json` 並為其加上範圍限制 (例如 Decay 最大限制為 512，Truncation 最大限制為 1)。
+     
+     ![Sweep Console](assets/sweep_console.png)
+
    * **Terminal**: 點擊「RUN SIMULATION」後，可以在網頁上即時監控模擬日誌與登入狀態。
+4. **停止伺服器**：
+   在運行伺服器的終端機視窗中，按下 `Ctrl + C` 即可安全關閉伺服器。
 
 ## 檔案結構
 
@@ -61,16 +69,20 @@
    * **公式區隔**：不同的 Alpha 公式之間，請務必使用 `---` 獨立一行作為分隔線。只要沒遇到 `---`，公式內部您可以自由加入任意數量的**空白行**與排版！
    * *(您可以直接參考專案內的 [alphas_example.txt](file:///d:/WQ-Brain/alphas_example.txt) 範例檔)*
 
-## 使用方式
+## 💻 Terminal 終端機介面 (進階/無介面環境)
+
+如果您在遠端伺服器或是不方便使用網頁介面的環境，您可以直接透過指令操作：
 
 ### 1. 執行 Alpha 模擬
 
-在 `parameters.py` 中的 `DATA` 變數設定你要測試的 Alpha 參數陣列，然後執行：
+1. 手動編輯目錄下的 `alphas.txt` 來寫入您的公式。
+2. 開啟 `settings.json` 修改您的參數設定 (Universe、Delay，或是 Sweep 配置)。
+3. 設定完成後，在終端機執行：
 
 ```bash
 python main.py
 ```
-這會啟動多個執行緒自動進行模擬，並將結果儲存至 `data/` 目錄下 (例如 `api_123456.csv`)。
+這會自動讀取您設定的公式與參數，並啟動多個執行緒向 WQBrain 進行模擬，並將結果儲存至 `data/` 目錄下 (例如 `api_123456.csv`)。
 
 ### 2. 抓取達標的 Alphas
 
