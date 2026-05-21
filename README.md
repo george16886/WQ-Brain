@@ -86,7 +86,7 @@ python submit_alphas.py data/alpha_scrape_result_<timestamp>.csv
 
 #### 💡 A. 獨立單一變數掃描 (`SWEEP_MODE = 'independent'`) - 推薦使用
 * **運作機制**：以 `SETTINGS` 為基準線，**每次只會變動一個參數**，其餘參數均保持預設值。
-* **特色**：程式會自動過濾與預設基準重複的項目。此模式能精準找出各參數對 Alpha 表現的單獨影響，同時**有效避免參數組合過多（組合爆炸）**導致 API 請求被平台阻擋。
+* **特色**：程式會自動過濾與預設基準重複的項目。此模式能精準找出各參數對 Alpha 表現的單獨影響，同時 **有效避免參數組合過多（組合爆炸）** 導致 API 請求被平台阻擋。
 * **範例**：
   若基準 `SETTINGS` 為：`universe='TOP3000'`, `neutralization='SUBINDUSTRY'`, `decay=10`, `truncation=0.1`
   而您設定的 `SWEEP_PARAMS` 如下：
