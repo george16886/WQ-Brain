@@ -10,11 +10,11 @@ echo 1. Start Web UI (server.py)
 echo 2. Run Simulation Directly (main.py)
 echo 3. Exit
 echo =======================================
-set /p choice="Choose an option (1-3): "
+choice /c 123 /n /m "Please select an option (1-3): "
 
-if "%choice%"=="1" goto server
-if "%choice%"=="2" goto main
-if "%choice%"=="3" goto end
+if errorlevel 3 goto end
+if errorlevel 2 goto main
+if errorlevel 1 goto server
 
 goto menu
 

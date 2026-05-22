@@ -1,13 +1,13 @@
 {
     "settings": {
         "universe": "TOP3000",
-        "neutralization": "INDUSTRY",
+        "neutralization": "NONE",
         "delay": 1,
-        "decay": 0,
-        "truncation": 0.1
+        "decay": 4,
+        "truncation": 0.08
     },
-    "enable_sweep": true,
-    "sweep_mode": "grid",
+    "enable_sweep": false,
+    "sweep_mode": "independent",
     "sweep_params": {
         "universe": [
             "TOP3000",
