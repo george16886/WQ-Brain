@@ -214,4 +214,15 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('stop-btn').style.display = 'none';
         }
     });
+
+    document.getElementById('shutdown-server-btn').addEventListener('click', async () => {
+        if (confirm("Are you sure you want to stop the server?")) {
+            try {
+                await fetch('/api/shutdown', { method: 'POST' });
+                document.body.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100vh; color: white; font-size: 1.5em; background: rgba(0,0,0,0.8);'>Server has been stopped. You can close this window.</div>";
+            } catch(e) {
+                console.error(e);
+            }
+        }
+    });
 });

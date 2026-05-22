@@ -85,6 +85,14 @@ def stop_simulation():
         return {"status": "stopped"}
     return {"status": "not running"}
 
+@app.post("/api/shutdown")
+def shutdown_server():
+    import threading
+    def shutdown():
+        os._exit(0)
+    threading.Timer(0.5, shutdown).start()
+    return {"status": "shutting down"}
+
 @app.get("/api/logs")
 def get_logs():
     log_file = "data/sim_latest.log"
